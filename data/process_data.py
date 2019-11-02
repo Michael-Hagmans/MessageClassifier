@@ -3,6 +3,13 @@ import pandas as pd
 from sqlalchemy import create_engine
 
 def load_data(messages_filepath, categories_filepath):
+    '''
+    Both input files are read and merged into one dataframe.
+    :param messages_filepath: path to a csv file that contains information on messages
+    :param categories_filepath: path to a csv file that contains information on categories
+    :return: output is a dataframe with both inputs combined.
+    '''
+
     # load messages dataset
     messages = pd.read_csv(messages_filepath)
     # load categories dataset
@@ -17,6 +24,12 @@ def load_data(messages_filepath, categories_filepath):
 
 
 def clean_data(df):
+    '''
+    Clean the dataframe to use it for machine learning later.
+    :param df: dataframe that contains data on both messages and categories.
+    :return: output is a dataframe that is cleaned and ready to use for machine learning.
+    '''
+
     # create a dataframe of the 36 individual category columns
     categories = df['categories'].str.split(pat=';', expand=True)
 
@@ -62,14 +75,24 @@ def clean_data(df):
     return df_clean
 
 def save_data(df, database_filename):
-    engine = create_engine('sqlite:///' + database_filename + '.db')
-    df.to_sql(database_filename, engine, index=False)
+    '''
+    Save the dataframe in a .db file in a defined location.
+    :param df: dataframe that needs to be saved.
+    :param database_filename: name you would like to give for dataframe. Include '.db' in the end.
+    :return: -
+    '''
+    filename_elements = database_filename.split('/')
+    db_filename_only = filename_elements[len(filename_elements)-1][0:len(filename_elements[len(filename_elements)-1])-3]
+    engine = create_engine('sqlite:///' + database_filename)
+    df.to_sql(db_filename_only, engine, index=False)
 
-engine = create_engine('sqlite:///MessagesData.db')
-df.to_sql('MessagesData', engine, index=False)
 
 
 def main():
+    '''
+    Run all functions in a row. Read data, process it and save it in a .db file.
+    :return: -
+    '''
     if len(sys.argv) == 4:
 
         messages_filepath, categories_filepath, database_filepath = sys.argv[1:]

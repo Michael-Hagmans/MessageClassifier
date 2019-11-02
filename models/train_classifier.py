@@ -14,8 +14,16 @@ from sklearn.model_selection import GridSearchCV
 import pickle
 
 def load_data(database_filepath):
-    engine = create_engine('sqlite:///' + database_filepath +'.db')
-    df = pd.read_sql_table(database_filepath, 'sqlite:///' + database_filepath +'.db')
+    '''
+    Load saved .db file that contains message data and extract information for machine learning.
+    :param database_filepath: Indicate the location on your machine where the .db file is saved.
+    :return: Output contains three parts: Variables X and Y for machine learning and all category names in
+                            a seperate variable category_names.
+    '''
+    filename_elements = database_filepath.split('/')
+    table_name = filename_elements[len(filename_elements) - 1][0:len(filename_elements[len(filename_elements) - 1]) - 3]
+    engine = create_engine('sqlite:///' + database_filepath)
+    df = pd.read_sql_table(table_name, 'sqlite:///' + database_filepath)
 
     X = df['message'].values
     Y = df.drop(['message', 'original', 'genre', 'id'], axis=1).values
@@ -24,6 +32,11 @@ def load_data(database_filepath):
     return X, Y, category_names
 
 def tokenize(text):
+    '''
+    Create tokens from string input.
+    :param text: String that contains a message.
+    :return: Output is a list of all tokens contained in the string.
+    '''
     tokens = word_tokenize(text)
     lemmatizer = WordNetLemmatizer()
     list_tokens = []
@@ -33,6 +46,10 @@ def tokenize(text):
 
 
 def build_model():
+    '''
+    Create a machine learning model with a pipeline that processes data and creates a prediction.
+    :return: Output is a model that is not trained yet.
+    '''
     pipeline = Pipeline([
         ('vect', CountVectorizer(tokenizer=tokenize)),
         ('Tfidf', TfidfTransformer()),
@@ -41,8 +58,7 @@ def build_model():
 
     parameters = {
         'vect__ngram_range': ((1,1), (1,2)),
-        'vect__min_df': (0.05, 1.0),
-        'vect__max_df': (0.6, 1.0),
+        'vect__max_df': (0.6, 0.08, 1.0),
         # information on vect parameters found here:
         # https://scikit-learn.org/stable/modules/generated/sklearn.feature_extraction.text.CountVectorizer.html
 
@@ -56,14 +72,22 @@ def build_model():
         # https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestClassifier.html
     }
 
+
+
     model = GridSearchCV(pipeline, param_grid = parameters)
 
     return model
-    model = build_model()
-    model.fit(X_train, Y_train)
 
 
 def evaluate_model(model, X_test, Y_test, category_names):
+    '''
+    Evaluate how your model performs. Functions prints metrics.
+    :param model: Machine learning model that you would like to check.
+    :param X_test: Input test data.
+    :param Y_test: Output test data.
+    :param category_names: Names of categories in a list.
+    :return: -
+    '''
     y_pred = model.predict(X_test)
 
     for i in range(len(Y_test[0])):
@@ -78,6 +102,12 @@ def evaluate_model(model, X_test, Y_test, category_names):
 
 
 def save_model(model, model_filepath):
+    '''
+    Save your trained model in a pickle file.
+    :param model: Model to save.
+    :param model_filepath: Path where to save the model.
+    :return: -
+    '''
     # Found a description on how to do this here:
     # https://machinelearningmastery.com/save-load-machine-learning-models-python-scikit-learn/
     filename = model_filepath + '.sav'
@@ -85,6 +115,10 @@ def save_model(model, model_filepath):
 
 
 def main():
+    '''
+    Run all functions to load data, build and fit model, evaluate model and save trained model.
+    :return:
+    '''
     if len(sys.argv) == 3:
         database_filepath, model_filepath = sys.argv[1:]
         print('Loading data...\n    DATABASE: {}'.format(database_filepath))
